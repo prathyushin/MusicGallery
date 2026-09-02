@@ -2,7 +2,7 @@
 
 A modern Android music and podcast player focused on a premium, fast and personal listening experience.
 
-> **V3.1 goal:** make every release visibly feel like progress — with a clear version identity, a polished listening shell, and a foundation that can keep growing without losing the app's personality.
+> **V3.1 goal:** be the first genuinely usable release. Later versions will add substantial features while keeping a clear, visible version history.
 
 ## Current release
 
@@ -11,15 +11,26 @@ Version code: **31**
 Minimum Android: **9 / API 28**  
 Target Android: **16 / API 36**
 
-### V3.1 — The Listening Update
+### V3.1 — The First Usable Release
 
-- Release-aware version identity shown in the app
-- "What's new" surface on Home
-- Refined Home, Library, Podcasts and Search hierarchy
-- Persistent mini-player shell
-- Dedicated music + podcast navigation
-- Shared visual language built with Material 3 and Jetpack Compose
-- Android 9+ compatibility remains a hard platform requirement
+Implemented in this release line:
+
+- Real local-device music scanning through Android MediaStore
+- Android 9+ audio-library permission handling
+- Real local audio playback through Media3 ExoPlayer
+- Play/pause and next-track controls
+- Persistent mini-player while browsing the app
+- Local library list with song, artist and album metadata
+- Fast local music search
+- Home, Library, Podcasts and Search navigation
+- Visible version identity and "What's new" surface
+- RSS podcast feed parsing foundation
+- Dedicated podcast area ready for subscriptions, episode persistence and downloads
+- Material 3 + Jetpack Compose UI
+- Android 9+ compatibility as a hard platform requirement
+- GitHub Actions debug APK build pipeline
+
+The goal of `3.1.0-alpha01` is not to pretend every planned feature is finished. It establishes a real, installable product foundation that can be tested and improved release by release.
 
 ## Release versioning policy
 
@@ -37,7 +48,7 @@ Every meaningful update must bump the version number in **both** `app/build.grad
 
 Examples:
 
-- `3.1.0-alpha02` — another V3.1 development build
+- `3.1.0-alpha02` — next V3.1 development build
 - `3.1.0` — first stable V3.1 release
 - `3.2.0` — meaningful new feature generation
 - `3.2.1` — focused bug-fix release
@@ -56,6 +67,8 @@ MusicGallery is built around three principles:
 
 ### Music
 
+Planned and progressively implemented:
+
 - Local music library
 - Songs, albums, artists, genres and folders
 - Playlists and favorites
@@ -70,6 +83,8 @@ MusicGallery is built around three principles:
 
 ### Podcasts
 
+Planned and progressively implemented:
+
 - Podcast discovery and RSS feed support
 - Search and subscriptions
 - Podcast library and show pages
@@ -82,41 +97,26 @@ MusicGallery is built around three principles:
 - Episode queueing
 - Podcast artwork and episode metadata
 
-### Experience
-
-- Premium, spacious UI inspired by modern music apps
-- Dynamic artwork-driven surfaces
-- Light and dark themes
-- Material 3 / Jetpack Compose
-- Persistent mini-player
-- Dedicated full-screen Now Playing direction
-- Music/podcast-aware controls
-- Smooth navigation and subtle motion
-- Phone-first responsive layouts
-
 ## Architecture
 
 The V3 foundation uses Kotlin, Jetpack Compose and AndroidX Media3. Music and podcast features are separated into domain/data layers so playback can remain shared while each content type evolves independently.
 
-Planned high-level modules:
+Current foundation:
 
 ```text
-app
-├── core
-│   ├── playback
-│   ├── database
-│   ├── network
-│   └── design
-├── music
-│   ├── library
-│   ├── playlists
-│   ├── lyrics
-│   └── statistics
-└── podcast
-    ├── discovery
-    ├── subscriptions
-    ├── episodes
-    └── downloads
+app/src/main/java/com/prathyushin/musicgallery
+├── library
+│   └── MusicScanner
+├── model
+│   └── MediaModels
+├── playback
+│   ├── PlaybackController
+│   └── MusicPlaybackService
+├── podcast
+│   └── PodcastFeedRepository
+└── ui
+    ├── MiniPlayer
+    └── Theme
 ```
 
 ## Technology
@@ -125,8 +125,7 @@ app
 - Jetpack Compose
 - Material 3
 - AndroidX Media3
-- Room (as database features are implemented)
-- Coroutines + Flow
+- Coroutines
 - Coil
 - Android Architecture Components
 
@@ -141,22 +140,27 @@ Before redistributing copied upstream source, preserve applicable copyright noti
 
 ## Development status
 
-**V3.1 is an active alpha development line.** The `v2` branch remains preserved as the previous development line, while `v3` and `v3.1` track the newer product direction.
+**V3.1 is an active alpha release line.** The objective is to ship a genuinely usable build first, then move feature-by-feature toward the full product vision.
 
-The current UI is a product shell while the deeper music-library, podcast, persistence and background-playback systems are progressively integrated.
+The GitHub Actions workflow builds a debug APK on pushes to `v3.1`, making each iteration testable before the next version is promoted.
 
 ## Roadmap
 
 - [x] V3.1 release identity and visible versioning
 - [x] Premium navigation shell
-- [x] Music + Podcasts top-level experience
-- [x] Persistent mini-player shell
-- [ ] Port/upgrade the complete music playback and library engine
-- [ ] Unified Media3 background playback service
-- [ ] Real local music scanning for Android 9+
-- [ ] Podcast RSS discovery and subscriptions
-- [ ] Podcast episode downloads
-- [ ] Database-backed history and progress
+- [x] Real local music scanning
+- [x] Real local audio playback
+- [x] Persistent mini-player
+- [x] Local music search
+- [x] RSS parsing foundation
+- [x] Automated debug APK builds
+- [ ] Media3 controller/service integration for persistent background playback
+- [ ] Album/artist/genre/folder views
+- [ ] Queue, shuffle and repeat
+- [ ] Database-backed favorites, history and progress
+- [ ] Podcast subscriptions and show persistence
+- [ ] Podcast episode playback and progress
+- [ ] Podcast downloads and offline playback
 - [ ] Full Now Playing redesign
 - [ ] Lyrics and synchronized playback integration
 - [ ] Playlists and smart mixes
