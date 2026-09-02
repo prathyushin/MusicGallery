@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -43,9 +42,9 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -58,13 +57,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.prathyushin.musicgallery.library.MusicScanner
-import com.prathyushin.musicgallery.model.PlaybackState
 import com.prathyushin.musicgallery.model.Track
 import com.prathyushin.musicgallery.playback.PlaybackController
 import com.prathyushin.musicgallery.ui.MusicGalleryTheme
 
 class MainActivity : ComponentActivity() {
-    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) recreate()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,7 +98,7 @@ fun MusicGalleryApp(activity: ComponentActivity) {
         tracks = MusicScanner(activity.contentResolver).scan()
     }
 
-    androidx.compose.runtime.DisposableEffect(Unit) {
+    DisposableEffect(Unit) {
         onDispose { controller.release() }
     }
 
@@ -182,11 +182,8 @@ private fun HomeScreen(tracks: List<Track>, onPlay: (Track) -> Unit, modifier: M
             Text(if (tracks.isEmpty()) "Your library" else "Recently added", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
         }
-        if (tracks.isEmpty()) {
-            item { EmptyLibraryCard() }
-        } else {
-            items(tracks.take(12), key = { it.id }) { track -> TrackRow(track, onPlay) }
-        }
+        if (tracks.isEmpty()) item { EmptyLibraryCard() }
+        else items(tracks.take(12), key = { it.id }) { track -> TrackRow(track, onPlay) }
     }
 }
 
