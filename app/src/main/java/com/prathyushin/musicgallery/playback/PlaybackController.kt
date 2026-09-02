@@ -8,10 +8,10 @@ import com.prathyushin.musicgallery.model.Track
 class PlaybackController(context: Context) {
     private val player = ExoPlayer.Builder(context).build()
 
-    fun play(track: Track) {
+    fun play(track: Track, mediaUri: String) {
         val item = MediaItem.Builder()
             .setMediaId(track.id.toString())
-            .setUri(track.artworkUri ?: return)
+            .setUri(mediaUri)
             .setMediaMetadata(
                 androidx.media3.common.MediaMetadata.Builder()
                     .setTitle(track.title)
