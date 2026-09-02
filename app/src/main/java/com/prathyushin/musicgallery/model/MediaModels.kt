@@ -6,7 +6,8 @@ data class Track(
     val artist: String,
     val album: String,
     val durationMs: Long,
-    val artworkUri: String? = null
+    val artworkUri: String? = null,
+    val contentUri: String? = null
 )
 
 data class PodcastShow(
