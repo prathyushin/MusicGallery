@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.LibraryMusic
 import androidx.compose.material.icons.rounded.Podcasts
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Upgrade
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -110,7 +111,11 @@ private fun HomeScreen(modifier: Modifier = Modifier) {
     LazyColumn(modifier.fillMaxSize().padding(horizontal = 20.dp)) {
         item {
             Spacer(Modifier.height(24.dp))
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Column {
                     Text("Good morning", style = MaterialTheme.typography.labelLarge)
                     Text("Music Gallery", style = MaterialTheme.typography.headlineLarge)
@@ -119,6 +124,10 @@ private fun HomeScreen(modifier: Modifier = Modifier) {
                     Icon(Icons.Rounded.Headphones, "Music", Modifier.padding(12.dp))
                 }
             }
+            Spacer(Modifier.height(12.dp))
+            VersionPill()
+            Spacer(Modifier.height(24.dp))
+            ReleaseCard()
             Spacer(Modifier.height(28.dp))
             Text("Your listening", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
@@ -135,6 +144,43 @@ private fun HomeScreen(modifier: Modifier = Modifier) {
         item { Spacer(Modifier.height(14.dp)) }
         item { FeatureCard("Continue listening", "Pick up exactly where you left off") }
         item { Spacer(Modifier.height(20.dp)) }
+    }
+}
+
+@Composable
+private fun VersionPill() {
+    Surface(
+        shape = RoundedCornerShape(50.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            Icon(Icons.Rounded.Upgrade, null, Modifier.size(16.dp))
+            Text("Music Gallery ${AppVersion.NAME}", style = MaterialTheme.typography.labelMedium)
+        }
+    }
+}
+
+@Composable
+private fun ReleaseCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(26.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Text("What's new", style = MaterialTheme.typography.labelLarge)
+            Spacer(Modifier.height(4.dp))
+            Text(AppVersion.RELEASE_TITLE, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "A refreshed listening foundation with clearer navigation, a dedicated podcast space, a persistent mini-player and release-aware versioning.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
     }
 }
 
@@ -165,11 +211,20 @@ private fun FeatureCard(title: String, subtitle: String) {
 @Composable
 private fun LibraryHome(modifier: Modifier = Modifier) {
     LazyColumn(modifier.fillMaxSize().padding(20.dp)) {
-        item { Spacer(Modifier.height(24.dp)); Text("Library", style = MaterialTheme.typography.headlineLarge); Spacer(Modifier.height(20.dp)) }
+        item {
+            Spacer(Modifier.height(24.dp))
+            Text("Library", style = MaterialTheme.typography.headlineLarge)
+            Text("Your music, organized your way", style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(20.dp))
+        }
         items(listOf("Songs", "Albums", "Artists", "Playlists", "Genres", "Folders")) { item ->
             Card(Modifier.fillMaxWidth().padding(vertical = 5.dp), shape = RoundedCornerShape(18.dp)) {
                 Text(item, Modifier.padding(18.dp), style = MaterialTheme.typography.titleMedium)
             }
+        }
+        item {
+            Spacer(Modifier.height(18.dp))
+            Text("Version ${AppVersion.NAME}", style = MaterialTheme.typography.labelMedium)
         }
     }
 }
@@ -177,11 +232,17 @@ private fun LibraryHome(modifier: Modifier = Modifier) {
 @Composable
 private fun PodcastHome(modifier: Modifier = Modifier) {
     LazyColumn(modifier.fillMaxSize().padding(20.dp)) {
-        item { Spacer(Modifier.height(24.dp)); Text("Podcasts", style = MaterialTheme.typography.headlineLarge); Text("Discover, follow and continue listening", style = MaterialTheme.typography.bodyLarge); Spacer(Modifier.height(22.dp)) }
+        item {
+            Spacer(Modifier.height(24.dp))
+            Text("Podcasts", style = MaterialTheme.typography.headlineLarge)
+            Text("Discover, follow and continue listening", style = MaterialTheme.typography.bodyLarge)
+            Spacer(Modifier.height(22.dp))
+        }
         item { FeatureCard("Continue listening", "Resume your latest episode") }
         item { Spacer(Modifier.height(14.dp)); Text("Your shows", style = MaterialTheme.typography.titleLarge); Spacer(Modifier.height(12.dp)) }
         item { FeatureCard("Subscriptions", "Your followed podcasts will appear here") }
         item { Spacer(Modifier.height(14.dp)); FeatureCard("Downloads", "Offline episodes and automatic downloads") }
+        item { Spacer(Modifier.height(18.dp)); Text("Music Gallery ${AppVersion.NAME}", style = MaterialTheme.typography.labelMedium) }
     }
 }
 
@@ -191,7 +252,13 @@ private fun SearchHome(query: String, onQueryChange: (String) -> Unit, modifier:
         Spacer(Modifier.height(24.dp))
         Text("Search", style = MaterialTheme.typography.headlineLarge)
         Spacer(Modifier.height(16.dp))
-        TextField(query, onQueryChange, Modifier.fillMaxWidth(), placeholder = { Text("Songs, artists, albums or podcasts") }, singleLine = true)
+        TextField(
+            query,
+            onQueryChange,
+            Modifier.fillMaxWidth(),
+            placeholder = { Text("Songs, artists, albums or podcasts") },
+            singleLine = true
+        )
         Spacer(Modifier.height(22.dp))
         if (query.isBlank()) {
             Text("Search your entire listening world", style = MaterialTheme.typography.titleLarge)
