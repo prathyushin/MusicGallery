@@ -1,179 +1,288 @@
-# MusicGallery V3.1
+# MusicGallery 4.0
 
-A modern Android music and podcast player focused on a premium, fast and personal listening experience.
+## The Personal Media Platform
 
-> **V3.1 goal:** be the first genuinely usable release. Later versions will add substantial features while keeping a clear, visible version history.
+MusicGallery 4.0 is the next major product generation of MusicGallery: a local-first Android listening system for personal music collections and podcasts.
 
-## Current release
+> **V4 principle:** reliability before novelty. The app should feel like one continuous listening system rather than a collection of separate screens.
 
-**Music Gallery 3.1.0-alpha01**  
-Version code: **31**  
+### Current V4 build
+
+**MusicGallery 4.0.0-alpha01**  
+Version code: **40**  
 Minimum Android: **9 / API 28**  
-Target Android: **16 / API 36**
+Target Android: **16 / API 37**
 
-### V3.1 — The First Usable Release
+This is a new V4 release branch based on the V3.1 foundation. Existing V1/V2/V3/V3.1 versions are not replaced or edited by V4.
 
-Implemented in this release line:
+## V4 product promise
 
-- Real local-device music scanning through Android MediaStore
-- Android 9+ audio-library permission handling
-- Real local audio playback through Media3 ExoPlayer
-- Play/pause and next-track controls
-- Persistent mini-player while browsing the app
-- Local library list with song, artist and album metadata
-- Fast local music search
-- Home, Library, Podcasts and Search navigation
-- Visible version identity and "What's new" surface
-- RSS podcast feed parsing foundation
-- Dedicated podcast area ready for subscriptions, episode persistence and downloads
-- Material 3 + Jetpack Compose UI
-- Android 9+ compatibility as a hard platform requirement
-- GitHub Actions debug APK build pipeline
+**Your music and podcasts, organized beautifully, available reliably, and controlled by you.**
 
-The goal of `3.1.0-alpha01` is not to pretend every planned feature is finished. It establishes a real, installable product foundation that can be tested and improved release by release.
+MusicGallery is designed as a premium personal media platform—not an Apple Music clone and not merely an offline file browser.
 
-## Release versioning policy
+### Core differentiators
 
-MusicGallery uses semantic-style version numbers so users can see that the app is actively evolving.
+- Local music ownership
+- Offline-first behavior
+- First-class podcasts
+- One persistent playback experience
+- Material 3 and artwork-led UI
+- No mandatory account
+- Large-library organization
+- Clear privacy and storage controls
+
+## V4.0 alpha foundation
+
+The V4 branch begins with an installable Android product line and the architecture needed for the larger V4 plan.
+
+### Current foundation
+
+- Android 9+ support
+- Kotlin + Jetpack Compose
+- Material 3
+- Media3 ExoPlayer
+- MediaSessionService playback architecture
+- Local MediaStore music scanning
+- Local music search
+- Home / Library / Podcasts / Search navigation
+- Persistent mini-player
+- Podcast RSS foundation
+- Version identity and What's New direction
+- GitHub Actions installable APK build
+- GitHub Release automation
+
+### Playback architecture
+
+The V4 playback direction moves the Player and MediaSession into `MusicPlaybackService`. The Activity communicates through a Media3 `MediaController` instead of owning an independent ExoPlayer instance.
 
 ```text
-3.1.0-alpha01
-│ │ │ └── build/release iteration
-│ │ └──── patch
-│ └────── minor feature release
-└──────── major product generation
+Compose UI
+    ↓
+PlaybackController
+    ↓
+MediaController
+    ↓
+MediaSessionService
+    ↓
+ExoPlayer
+    ↓
+Local / Podcast media
 ```
 
-Every meaningful update must bump the version number in **both** `app/build.gradle.kts` and `AppVersion`. The Home screen should also communicate the current release when the change is user-visible.
+This is the foundation for background playback, notification controls, lock-screen controls, Bluetooth/headset actions, audio focus and queue continuity.
 
-Examples:
+## V4 UX direction
 
-- `3.1.0-alpha02` — next V3.1 development build
-- `3.1.0` — first stable V3.1 release
-- `3.2.0` — meaningful new feature generation
-- `3.2.1` — focused bug-fix release
+The V4 interface follows the supplied Grand-Scale Product Blueprint and earlier immersive-audio research:
 
-Do not reuse an existing version code. Version codes increase monotonically with every distributable build.
+- Content-first hierarchy
+- Artwork as the visual hero
+- Quiet structural chrome
+- Layered near-black dark mode
+- Subtle artwork-derived accents
+- Persistent mini-player
+- Predictable mini-player → Now Playing expansion
+- Contextual bottom sheets
+- Consistent long-press actions
+- Explicit empty, loading, error and offline states
+- Phone-first responsive design with tablet/foldable adaptation
+- Accessible controls and localized content descriptions
 
-## Product vision
+## V4.0 Core target
 
-MusicGallery is built around three principles:
+The full V4 Core target is intentionally larger than this first alpha build.
 
-- **Beautiful** — spacious layouts, expressive artwork, fluid transitions and adaptive theming.
-- **Powerful** — serious local-music playback, library management, playlists, lyrics and queue controls.
-- **Unified** — music and podcasts share one consistent player, history, queue and listening experience.
+### Playback
 
-## V3 foundation
+- Background playback
+- MediaSessionService
+- System media notification
+- Audio focus
+- Becoming-noisy handling
+- Headset/Bluetooth transport controls
+- Queue reorder/remove
+- Previous/next
+- Shuffle
+- Repeat off/all/one
+- Saved playback position
+- Playback restoration
 
-### Music
+### Music library
 
-Planned and progressively implemented:
-
-- Local music library
+- Incremental MediaStore scanning
 - Songs, albums, artists, genres and folders
-- Playlists and favorites
-- Recently played and recently added
-- Queue management
-- Shuffle, repeat, gapless playback and crossfade
-- Background playback and media controls
-- Lyrics support
-- Search
-- Statistics and listening history
-- Artwork-focused now-playing experience
+- Sorting and filtering
+- Album and artist pages
+- Artwork caching
+- Stale-row removal
+- Manual rescan
+- Large-library paging
+
+### Personal organization
+
+- Playlists
+- Favorites
+- Recently played
+- Continue listening
+- Recently added
+- Queue persistence
+- Contextual add-to-playlist actions
+- Undo for destructive actions where practical
 
 ### Podcasts
 
-Planned and progressively implemented:
-
-- Podcast discovery and RSS feed support
-- Search and subscriptions
-- Podcast library and show pages
-- Episode lists with progress tracking
-- Continue listening
-- Downloads and offline playback
-- Playback speed controls
-- Sleep timer
+- RSS URL import
+- Feed validation
+- Show pages
+- Episode pages
+- Subscriptions
+- Episode progress
+- Playback speed
+- Skip controls
 - Show notes
-- Episode queueing
-- Podcast artwork and episode metadata
+- Download state
+- Recoverable feed/media errors
 
-## Architecture
+### Downloads
 
-The V3 foundation uses Kotlin, Jetpack Compose and AndroidX Media3. Music and podcast features are separated into domain/data layers so playback can remain shared while each content type evolves independently.
+- Enqueue/cancel/retry/delete
+- Wi-Fi-only option
+- Storage usage
+- Resumable WorkManager jobs
+- App-managed storage
+- Cleanup controls
+- Offline playback
 
-Current foundation:
+### Search
+
+- Unified music + podcast search
+- Tracks, albums, artists, playlists, shows and episodes
+- Type filters
+- Recent searches
+- Direct Play / Add to Queue actions
+
+### Settings
+
+- Theme
+- Dynamic color
+- Scan controls
+- Permission status
+- Audio behavior
+- Podcast defaults
+- Download policy
+- Storage management
+- Privacy
+- Licenses
+- Version/build information
+- User-consented diagnostic export
+
+## Architecture plan
+
+The intended V4 structure is modular and state-driven:
 
 ```text
-app/src/main/java/com/prathyushin/musicgallery
-├── library
-│   └── MusicScanner
+app
+core
 ├── model
-│   └── MediaModels
 ├── playback
-│   ├── PlaybackController
-│   └── MusicPlaybackService
-├── podcast
-│   └── PodcastFeedRepository
-└── ui
-    ├── MiniPlayer
-    └── Theme
+├── database
+├── network
+└── designsystem
+
+feature
+├── home
+├── library
+├── search
+├── podcasts
+├── downloads
+├── playlists
+└── settings
 ```
 
-## Technology
+Compose screens observe immutable state through ViewModels and Flow. Repositories coordinate MediaStore, Room, network and playback. Room stores durable user-owned state while MediaStore remains the authority for shared local audio metadata. WorkManager handles rescans, feed refresh, downloads and cleanup.
 
-- Kotlin
-- Jetpack Compose
-- Material 3
-- AndroidX Media3
-- Coroutines
-- Coil
-- Android Architecture Components
+## V4 delivery sequence
 
-## Upstream inspiration and attribution
+**Phase A — Architecture hardening**  
+Module boundaries, Room schema/migrations, playback interface, MediaSessionService, notification, restoration contract and tests.
 
-MusicGallery V3 is being developed with permission to reuse code from the project's contributors where their licensing/permission permits it. The music-player foundation is based on work from **PixelPlayer** by PixelPlayerHQ, with podcast functionality informed by the feature set and architecture ideas of **uPod** by svenwiegand.
+**Phase B — Listening core**  
+Queue, shuffle, repeat, Now Playing, mini-player, history, favorites, playlists, audio focus and Bluetooth/lock-screen validation.
 
-Before redistributing copied upstream source, preserve applicable copyright notices, license terms and third-party notices.
+**Phase C — Library excellence**  
+Incremental scan, categories, sorting/filtering, album/artist/folder pages, artwork strategy and large-library performance.
 
-- PixelPlayer: https://github.com/PixelPlayerHQ/PixelPlayer
-- uPod: https://github.com/svenwiegand/upod
+**Phase D — Podcast reliability**  
+Subscriptions, episode persistence, progress, speed/skip controls, refresh jobs, downloads, storage management and offline tests.
 
-## Development status
+**Phase E — Experience polish**  
+Home personalization, unified search, settings, onboarding, accessibility, localization readiness, tablet adaptation and documentation.
 
-**V3.1 is an active alpha release line.** The objective is to ship a genuinely usable build first, then move feature-by-feature toward the full product vision.
+**Phase F — Release candidate**  
+Beta testing, crash/ANR review, battery/memory profiling, device matrix testing, migrations, privacy/licensing review and final QA.
 
-The GitHub Actions workflow builds a debug APK on pushes to `v3.1`, making each iteration testable before the next version is promoted.
+## Versioning
 
-## Roadmap
+V4 uses explicit release identities:
 
-- [x] V3.1 release identity and visible versioning
-- [x] Premium navigation shell
-- [x] Real local music scanning
-- [x] Real local audio playback
-- [x] Persistent mini-player
-- [x] Local music search
-- [x] RSS parsing foundation
-- [x] Automated debug APK builds
-- [ ] Media3 controller/service integration for persistent background playback
-- [ ] Album/artist/genre/folder views
-- [ ] Queue, shuffle and repeat
-- [ ] Database-backed favorites, history and progress
-- [ ] Podcast subscriptions and show persistence
-- [ ] Podcast episode playback and progress
-- [ ] Podcast downloads and offline playback
-- [ ] Full Now Playing redesign
-- [ ] Lyrics and synchronized playback integration
-- [ ] Playlists and smart mixes
-- [ ] Search across music and podcasts
-- [ ] Settings and customization
-- [ ] Android Auto support
-- [ ] Widgets
-- [ ] Release build and store-ready polish
+```text
+4.0.0-alpha01
+4.0.0-alpha02
+4.0.0-alpha03
+...
+4.0.0-beta01
+...
+4.0.0
+```
 
-## Design direction
+Every distributable build receives a new monotonically increasing Android version code. Meaningful user-visible changes must also be recorded in `CHANGELOG.md`.
 
-MusicGallery aims to compete on **experience**, not by copying another product. The visual direction combines Android-native Material 3 interaction patterns with the content-first, artwork-led feel of premium music players, while keeping MusicGallery's music + podcast identity distinct.
+### Release rule
 
-## License
+An alpha is not described as stable. A stable `4.0.0` release is only ready after the playback, library, podcast, accessibility, privacy, licensing and release-quality gates pass.
 
-See the applicable source licenses and third-party notices before distribution. MusicGallery V3.1 should not be assumed to be covered by a single upstream license merely because it incorporates or derives from upstream projects.
+## Version history
+
+| Version | Role | Status |
+|---|---|---|
+| V1.0 | Original MusicGallery APK | Released baseline |
+| V2.0 | Development generation | Historical development branch |
+| V3.0 | Major product foundation | Historical development branch |
+| V3.1.0-alpha01 | First genuinely usable release line | V3 alpha |
+| **V4.0.0-alpha01** | **Personal Media Platform foundation** | **Current V4 alpha** |
+
+## Upstream attribution
+
+The project has documented reuse/inspiration relationships with PixelPlayerHQ/PixelPlayer and svenwiegand/uPod. The project owner has stated that permission was obtained from the relevant PixelPlayer contributor for code reuse. Applicable third-party licenses, copyright notices and attribution requirements must still be preserved before redistribution.
+
+## Build / install
+
+GitHub Actions builds an installable debug APK for the V4 branch and publishes the release artifact when the workflow completes successfully.
+
+For local development:
+
+```bash
+gradle --no-daemon assembleDebug
+```
+
+The resulting debug APK is under:
+
+```text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+## License and privacy
+
+MusicGallery is designed to keep core local playback account-free. Network access is used for explicit online functions such as podcast feeds, artwork and media downloads.
+
+Before public redistribution, maintain a complete dependency/license inventory and preserve required upstream notices.
+
+## Developer
+
+**Built by Pratyush.**
+
+## Documentation
+
+- `CHANGELOG.md` — release-by-release changes
+- `MusicGallery 4.0 Grand-Scale Product Blueprint` — product, UX, technical, quality, privacy and delivery specification
