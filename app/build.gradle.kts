@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.prathyushin.musicgallery"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.prathyushin.musicgallery"
         minSdk = 28
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 31
         versionName = "3.1.0-alpha01"
     }
