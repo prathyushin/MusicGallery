@@ -10,10 +10,10 @@ android {
 
     defaultConfig {
         applicationId = "com.prathyushin.musicgallery"
-        minSdk = 30
+        minSdk = 28
         targetSdk = 36
-        versionCode = 20
-        versionName = "2.0.0-alpha01"
+        versionCode = 30
+        versionName = "3.0.0-alpha01"
     }
 
     buildFeatures { compose = true }
