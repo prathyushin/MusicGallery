@@ -34,5 +34,6 @@ dependencies {
     implementation("androidx.media3:media3-session:1.9.0")
     implementation("androidx.media3:media3-ui:1.9.0")
     implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
