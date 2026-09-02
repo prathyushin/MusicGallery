@@ -1,14 +1,12 @@
-name: Android CI
+name: MusicGallery Android Release
 
 on:
   push:
-    branches: ["v3.1"]
-  pull_request:
-    branches: ["v3.1"]
+    branches: ["v4.0.0-alpha01"]
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -28,12 +26,25 @@ jobs:
         with:
           gradle-version: "9.3.1"
 
-      - name: Build debug APK
+      - name: Build installable debug APK
         run: gradle --no-daemon assembleDebug
 
-      - name: Upload debug APK
+      - name: Prepare release APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk MusicGallery-v4.0.0-alpha01-debug.apk
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MusicGallery-${{ github.sha }}-debug
-          path: app/build/outputs/apk/debug/*.apk
+          name: MusicGallery-v4.0.0-alpha01
+          path: MusicGallery-v4.0.0-alpha01-debug.apk
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create v4.0.0-alpha01 \
+            MusicGallery-v4.0.0-alpha01-debug.apk \
+            --title "MusicGallery 4.0.0-alpha01 — The Personal Media Platform" \
+            --prerelease \
+            --notes "MusicGallery V4.0.0-alpha01\n\nFirst V4 installable engineering release based on the V4 Grand-Scale Product Blueprint.\n\nCore direction: local-first music, Media3 background playback, persistent listening context, premium Material 3 UX, and first-class podcasts.\n\nBuilt by Pratyush."
