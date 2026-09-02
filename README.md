@@ -4,6 +4,8 @@ A modern Android music and podcast player focused on a premium, fast and persona
 
 > **V3.1 goal:** be the first genuinely usable release. Later versions will add substantial features while keeping a clear, visible version history.
 
+> **Built by Pratyush.**
+
 ## Current release
 
 **Music Gallery 3.1.0-alpha01**  
@@ -13,7 +15,9 @@ Target Android: **16 / API 36**
 
 ### V3.1 — The First Usable Release
 
-Implemented in this release line:
+This release line is being built as a real installable product rather than a UI prototype.
+
+Implemented/foundation features include:
 
 - Real local-device music scanning through Android MediaStore
 - Android 9+ audio-library permission handling
@@ -28,9 +32,20 @@ Implemented in this release line:
 - Dedicated podcast area ready for subscriptions, episode persistence and downloads
 - Material 3 + Jetpack Compose UI
 - Android 9+ compatibility as a hard platform requirement
-- GitHub Actions debug APK build pipeline
+- Automated APK build and GitHub Release pipeline
 
-The goal of `3.1.0-alpha01` is not to pretend every planned feature is finished. It establishes a real, installable product foundation that can be tested and improved release by release.
+The goal of `3.1.0-alpha01` is not to pretend every planned feature is finished. It establishes the first installable product foundation that can be tested and improved release by release.
+
+## Version history
+
+The repository keeps the original project history visible:
+
+- **V1.0** — original released offline music-player APK
+- **V2** — second-generation development branch
+- **V3** — modern Kotlin/Compose foundation
+- **V3.1** — first genuinely usable release line
+
+GitHub Releases are used for installable builds, while branches preserve the development history.
 
 ## Release versioning policy
 
@@ -49,6 +64,7 @@ Every meaningful update must bump the version number in **both** `app/build.grad
 Examples:
 
 - `3.1.0-alpha02` — next V3.1 development build
+- `3.1.0-beta01` — V3.1 beta milestone
 - `3.1.0` — first stable V3.1 release
 - `3.2.0` — meaningful new feature generation
 - `3.2.1` — focused bug-fix release
@@ -142,7 +158,7 @@ Before redistributing copied upstream source, preserve applicable copyright noti
 
 **V3.1 is an active alpha release line.** The objective is to ship a genuinely usable build first, then move feature-by-feature toward the full product vision.
 
-The GitHub Actions workflow builds a debug APK on pushes to `v3.1`, making each iteration testable before the next version is promoted.
+The release workflow builds an APK, stores it as a workflow artifact, and publishes the installable APK to the V3.1 GitHub Release.
 
 ## Roadmap
 
@@ -153,7 +169,8 @@ The GitHub Actions workflow builds a debug APK on pushes to `v3.1`, making each 
 - [x] Persistent mini-player
 - [x] Local music search
 - [x] RSS parsing foundation
-- [x] Automated debug APK builds
+- [x] Automated APK builds
+- [x] Installable V3.1 alpha release pipeline
 - [ ] Media3 controller/service integration for persistent background playback
 - [ ] Album/artist/genre/folder views
 - [ ] Queue, shuffle and repeat
@@ -173,6 +190,12 @@ The GitHub Actions workflow builds a debug APK on pushes to `v3.1`, making each 
 ## Design direction
 
 MusicGallery aims to compete on **experience**, not by copying another product. The visual direction combines Android-native Material 3 interaction patterns with the content-first, artwork-led feel of premium music players, while keeping MusicGallery's music + podcast identity distinct.
+
+## Developer
+
+**Built by Pratyush.**
+
+MusicGallery is a personal Android software project focused on making local music and podcasts feel fast, beautiful, and genuinely enjoyable to use.
 
 ## License
 
