@@ -44,12 +44,8 @@ Git branches preserve the development history. GitHub Releases will be used for 
 
 The goal is to build V3.1 properly first, then continue with `3.2`, `3.3`, `4.0`, and later releases as meaningful features are completed.
 
-## Project lineage
+ 
 
-MusicGallery V3 development uses the project's authorized PixelPlayer foundation where permitted, with podcast functionality informed by uPod's feature set and architecture. Applicable upstream copyright notices, licenses, and third-party notices must remain with redistributed code.
-
-- PixelPlayer — https://github.com/PixelPlayerHQ/PixelPlayer
-- uPod — https://github.com/svenwiegand/upod
 
 ## Release policy
 
