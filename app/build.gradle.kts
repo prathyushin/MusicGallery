@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -12,8 +11,8 @@ android {
         applicationId = "com.prathyushin.musicgallery"
         minSdk = 28
         targetSdk = 37
-        versionCode = 31
-        versionName = "3.1.0-alpha01"
+        versionCode = 40
+        versionName = "4.0.0-alpha01"
     }
 
     buildFeatures { compose = true }
