@@ -43,8 +43,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create v4.0.0-alpha01 \
+          gh release upload v4.0.0-alpha01 \
             MusicGallery-v4.0.0-alpha01-debug.apk \
-            --title "MusicGallery 4.0.0-alpha01 — The Personal Media Platform" \
-            --prerelease \
-            --notes "MusicGallery V4.0.0-alpha01\n\nFirst V4 installable engineering release based on the V4 Grand-Scale Product Blueprint.\n\nCore direction: local-first music, Media3 background playback, persistent listening context, premium Material 3 UX, and first-class podcasts.\n\nBuilt by Pratyush."
+            --clobber
