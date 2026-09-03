@@ -1,8 +1,8 @@
-name: MusicGallery Android Release
+name: MusicGallery 4.1 Android Release
 
 on:
   push:
-    branches: ["v4.0.0-alpha01"]
+    branches: ["v4.1.0-alpha01"]
   workflow_dispatch:
 
 permissions:
@@ -30,19 +30,33 @@ jobs:
         run: gradle --no-daemon assembleDebug
 
       - name: Prepare release APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk MusicGallery-v4.0.0-alpha01-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk MusicGallery-v4.1.0-alpha01-debug.apk
+
+      - name: Verify APK
+        run: test -s MusicGallery-v4.1.0-alpha01-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MusicGallery-v4.0.0-alpha01
-          path: MusicGallery-v4.0.0-alpha01-debug.apk
+          name: MusicGallery-v4.1.0-alpha01
+          path: MusicGallery-v4.1.0-alpha01-debug.apk
           if-no-files-found: error
 
-      - name: Publish GitHub Release
+      - name: Ensure GitHub Release exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload v4.0.0-alpha01 \
-            MusicGallery-v4.0.0-alpha01-debug.apk \
+          if ! gh release view v4.1.0-alpha01 >/dev/null 2>&1; then
+            gh release create v4.1.0-alpha01 \
+              --title "MusicGallery 4.1.0-alpha01 — The Experience Update" \
+              --prerelease \
+              --notes "MusicGallery 4.1.0-alpha01\n\nExperience-focused UI foundation: quick picks, floating bottom dock, settings organization, listening insights, premium artwork-first Now Playing direction, and a cleaner Home/Library/Podcasts/Search flow.\n\nBuilt by Pratyush."
+          fi
+
+      - name: Publish APK to GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload v4.1.0-alpha01 \
+            MusicGallery-v4.1.0-alpha01-debug.apk \
             --clobber
