@@ -1,6 +1,7 @@
 package com.prathyushin.musicgallery.library
 
 import android.content.ContentResolver
+import android.net.Uri
 import android.provider.MediaStore
 import com.prathyushin.musicgallery.model.Track
 
@@ -29,20 +30,19 @@ class MusicScanner(private val resolver: ContentResolver) {
             val artistColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val albumColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
             val durationColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
+            val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             while (cursor.moveToNext()) {
                 val id = cursor.getLong(idColumn)
-                val title = cursor.getString(titleColumn).orEmpty().ifBlank { "Unknown title" }
-                val artist = cursor.getString(artistColumn).orEmpty().ifBlank { "Unknown artist" }
-                val album = cursor.getString(albumColumn).orEmpty().ifBlank { "Unknown album" }
-                val duration = cursor.getLong(durationColumn)
+                val albumId = cursor.getLong(albumIdColumn)
+                val artwork = Uri.parse("content://media/external/audio/albumart/$albumId").toString()
                 result += Track(
                     id = id,
-                    title = title,
-                    artist = artist,
-                    album = album,
-                    durationMs = duration,
-                    contentUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI.buildUpon()
-                        .appendPath(id.toString()).build().toString()
+                    title = cursor.getString(titleColumn).orEmpty().ifBlank { "Unknown title" },
+                    artist = cursor.getString(artistColumn).orEmpty().ifBlank { "Unknown artist" },
+                    album = cursor.getString(albumColumn).orEmpty().ifBlank { "Unknown album" },
+                    durationMs = cursor.getLong(durationColumn),
+                    artworkUri = artwork,
+                    contentUri = collection.buildUpon().appendPath(id.toString()).build().toString()
                 )
             }
         }
