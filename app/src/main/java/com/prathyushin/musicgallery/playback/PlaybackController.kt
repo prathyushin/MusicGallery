@@ -4,23 +4,45 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.google.common.util.concurrent.ListenableFuture
 import com.prathyushin.musicgallery.model.Track
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.util.concurrent.Executors
 
 class PlaybackController(context: Context) {
     private val executor = Executors.newSingleThreadExecutor()
-    private val controllerFuture: ListenableFuture<MediaController> = MediaController.Builder(
+    private val controllerFuture = MediaController.Builder(
         context,
         SessionToken(context, ComponentName(context, MusicPlaybackService::class.java))
     ).buildAsync()
     @Volatile private var controller: MediaController? = null
 
+    private val _isPlaying = MutableStateFlow(false)
+    val isPlaying: StateFlow<Boolean> = _isPlaying
+    private val _currentMediaId = MutableStateFlow<String?>(null)
+    val currentMediaId: StateFlow<String?> = _currentMediaId
+
+    private val listener = object : Player.Listener {
+        override fun onIsPlayingChanged(isPlaying: Boolean) { _isPlaying.value = isPlaying }
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+            _currentMediaId.value = mediaItem?.mediaId
+        }
+    }
+
     init {
         controllerFuture.addListener({
-            try { controller = controllerFuture.get() } catch (_: Exception) { controller = null }
+            try {
+                controller = controllerFuture.get().also {
+                    it.addListener(listener)
+                    _isPlaying.value = it.isPlaying
+                    _currentMediaId.value = it.currentMediaItem?.mediaId
+                }
+            } catch (_: Exception) {
+                controller = null
+            }
         }, executor)
     }
 
@@ -35,8 +57,8 @@ class PlaybackController(context: Context) {
             .build())
         .build()
 
-    fun play(track: Track, mediaUri: String = track.contentUri.orEmpty()) {
-        if (mediaUri.isBlank()) return
+    fun play(track: Track) {
+        if (track.contentUri.isNullOrBlank()) return
         controller?.apply {
             setMediaItem(item(track))
             prepare()
@@ -60,9 +82,14 @@ class PlaybackController(context: Context) {
     fun seekTo(positionMs: Long) { controller?.seekTo(positionMs) }
     fun toggleShuffle() { controller?.shuffleModeEnabled = !(controller?.shuffleModeEnabled ?: false) }
     fun toggleRepeat() {
-        controller?.repeatMode = if (controller?.repeatMode == androidx.media3.common.Player.REPEAT_MODE_ALL)
-            androidx.media3.common.Player.REPEAT_MODE_OFF else androidx.media3.common.Player.REPEAT_MODE_ALL
+        controller?.repeatMode = if (controller?.repeatMode == Player.REPEAT_MODE_ALL) Player.REPEAT_MODE_OFF else Player.REPEAT_MODE_ALL
     }
-    fun isPlaying(): Boolean = controller?.isPlaying == true
-    fun release() { controller?.release(); controller = null; executor.shutdownNow() }
+    fun currentPosition(): Long = controller?.currentPosition ?: 0L
+    fun duration(): Long = controller?.duration ?: 0L
+    fun release() {
+        controller?.removeListener(listener)
+        controller?.release()
+        controller = null
+        executor.shutdownNow()
+    }
 }
