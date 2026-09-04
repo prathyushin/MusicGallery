@@ -1,44 +1,39 @@
-# MusicGallery 4.2.0-alpha01 — The Real Library Update
+# MusicGallery 4.2.1-alpha01 — Fluid Library UI
 
 ## Goal
-V4.2 is a rebuild after the V4.1 prototype feedback. It moves the experience away from placeholder content and toward a real daily-use local music player.
+V4.2.1 is the next installable pass after V4.2.0-alpha01. It applies the supplied MusicGallery flow/UI direction to the real MediaStore-backed library without reintroducing demo content.
 
-## Implemented
-- Real MediaStore music scanning.
-- Android 12 and Android 13+ audio permission flow retained.
-- Real album-art content URIs from MediaStore album IDs.
-- Artwork-first song rows and album cards using Coil.
-- Real local Songs / Albums / Artists library modes.
-- Local search across title, artist and album.
-- Media3 queue playback instead of single-track-only playback.
-- Next / previous / shuffle / repeat controls exposed through the playback client.
-- Persistent MediaSessionService playback foundation retained for background and lock-screen integration.
-- Artwork-first mini player and full Now Playing surface.
-- Cleaner Home hierarchy based on the actual device library.
-- Podcast destination retained as a first-class area, with discovery/subscription/download UX clearly marked for the next implementation pass rather than showing fake episodes.
-- Installable debug APK workflow with GitHub Release attachment.
+## UI flow
+- Edge-to-edge Compose shell.
+- Floating bottom dock for Home, Library, Podcasts and Search.
+- Persistent mini player above the dock when real playback is active.
+- Mini player expands into a full Now Playing surface with animated enter/exit instead of a hard navigation cut.
+- Artwork remains the visual hero throughout the playback flow.
+- Artwork is reused as a subtle blurred ambient layer in Now Playing.
+- Live playback position is reflected in the mini player and Now Playing scrubber.
+- Transport controls use the Media3 controller as the source of truth.
+- Library uses Songs / Albums / Artists modes over actual scanned media.
+- Search filters the actual local library by title, artist and album.
+- Podcast area remains honest: no fabricated shows or episodes are displayed.
 
-## Deliberately not faked
-V4.2 does not invent songs, albums, podcast episodes, listening statistics or artwork when the device has no data. Empty states explain what is required instead.
+## Data rules
+- No hard-coded demo tracks.
+- No fake artist or album names.
+- No fake artwork.
+- No fake listening statistics or progress.
+- Empty states are used when real data is unavailable.
 
-## Review checklist
-1. Does the first screen feel useful immediately after permission?
-2. Is album artwork loading correctly for your files?
-3. Is the library fast enough with a large collection?
-4. Does tapping a song start playback reliably?
-5. Do next/previous controls behave as expected?
-6. Does the mini player open the full player naturally?
-7. Does the full player feel like MusicGallery rather than a generic Material demo?
-8. Is the Songs / Albums / Artists organization clear?
-9. Is local search useful?
-10. What should change before 4.2 beta?
+## Architecture
+The playback UI now observes `PlaybackController` state through Kotlin `StateFlow`. The existing Media3 `MediaSessionService`, MediaStore scanner and Track model remain the data/playback foundation.
 
-## Next likely pass
-- Live playback state observation from MediaController.
-- Real progress/seek position in Now Playing.
-- Persistent favorites, history and playlists with Room.
-- Dynamic artwork-derived ambient theming.
-- Real podcast RSS discovery, subscriptions, progress and downloads.
-- Functional settings and appearance controls.
-- Better adaptive tablet/foldable layouts.
-- Automated UI tests and release validation.
+## Source direction
+The implementation follows the supplied V4/V4.1 design material: content-first artwork, strong hierarchy, a floating dock, continuous mini-player/Now Playing flow, dynamic/ambient visual treatment and state-driven motion. The supplied V3 technical specification remains the architectural baseline: UI observes centralized playback state and local media truth comes from MediaStore.
+
+## Deliberately deferred
+- Room-backed favorites, history and playlists.
+- Full podcast discovery/subscriptions/downloads.
+- Persistent custom theme settings.
+- Tablet/foldable-specific layouts.
+- Automated UI test suite.
+
+These remain future work rather than simulated features.
