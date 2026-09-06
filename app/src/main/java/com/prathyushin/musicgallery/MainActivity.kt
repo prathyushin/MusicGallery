@@ -70,17 +70,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import coil.compose.AsyncImage
-import com.prathyushin.musicgallery.library.MusicScanner
+import com.prathyushin.musicgallery.library.RealLibraryViewModel
 import com.prathyushin.musicgallery.model.Track
 import com.prathyushin.musicgallery.playback.PlaybackController
 import com.prathyushin.musicgallery.ui.MusicGalleryTheme
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import kotlin.math.absoluteValue
 
-private val MgBackground = Color(0xFF070709)
+private val MgBackground = Color(0xFF09090B)
 private val MgGlass = Color(0x1AFFFFFF)
 private val MgBorder = Color(0x30FFFFFF)
 private val MgText = Color(0xFFF7F7F7)
@@ -100,13 +99,21 @@ class MainActivity : ComponentActivity() {
         setContent { MusicGalleryApp(this) }
     }
 
-    private fun hasAudioPermission(): Boolean {
-        val permission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
+    fun hasAudioPermission(): Boolean {
+        val permission = if (Build.VERSION.SDK_INT >= 33) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
         return ContextCompat.checkSelfPermission(this, permission) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun requestAudioPermission() {
-        val permission = if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_AUDIO else Manifest.permission.READ_EXTERNAL_STORAGE
+        val permission = if (Build.VERSION.SDK_INT >= 33) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
         permissionLauncher.launch(permission)
     }
 }
@@ -115,8 +122,11 @@ private enum class Destination { HOME, LIBRARY, PODCASTS, SEARCH }
 
 @Composable
 fun MusicGalleryApp(activity: ComponentActivity) {
+    val libraryViewModel = remember(activity) {
+        ViewModelProvider(activity)[RealLibraryViewModel::class.java]
+    }
+    val tracks by libraryViewModel.tracks.collectAsState()
     var destination by remember { mutableStateOf(Destination.HOME) }
-    var tracks by remember { mutableStateOf(emptyList<Track>()) }
     var currentIndex by remember { mutableIntStateOf(-1) }
     var showPlayer by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
@@ -127,8 +137,10 @@ fun MusicGalleryApp(activity: ComponentActivity) {
     val currentMediaId by controller.currentMediaId.collectAsState()
     val current = tracks.firstOrNull { it.id.toString() == currentMediaId } ?: tracks.getOrNull(currentIndex)
 
-    LaunchedEffect(Unit) {
-        tracks = withContext(Dispatchers.IO) { MusicScanner(activity.contentResolver).scan() }
+    LaunchedEffect(activity) {
+        if ((activity as? MainActivity)?.hasAudioPermission() == true) {
+            libraryViewModel.scanLibrary()
+        }
     }
 
     LaunchedEffect(currentMediaId, tracks) {
@@ -152,7 +164,12 @@ fun MusicGalleryApp(activity: ComponentActivity) {
                 contentWindowInsets = WindowInsets(0),
                 bottomBar = {
                     if (!showPlayer) {
-                        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 10.dp, vertical = 8.dp)) {
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .navigationBarsPadding()
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                        ) {
                             AnimatedVisibility(
                                 visible = current != null,
                                 enter = fadeIn() + slideInVertically { it / 2 },
@@ -170,16 +187,20 @@ fun MusicGalleryApp(activity: ComponentActivity) {
                                 }
                             }
                             Spacer(Modifier.height(8.dp))
-                            FloatingDock(destination) { destination = it }
+                            FloatingBottomNav(destination) { destination = it }
                         }
                     }
                 }
             ) { padding ->
+                val screenModifier = Modifier
+                    .padding(padding)
+                    .systemBarsPadding()
+
                 when (destination) {
-                    Destination.HOME -> HomeScreen(tracks, ::playAt, Modifier.padding(padding))
-                    Destination.LIBRARY -> LibraryScreen(tracks, ::playAt, libraryMode, { libraryMode = it }, Modifier.padding(padding))
-                    Destination.PODCASTS -> PodcastScreen(Modifier.padding(padding))
-                    Destination.SEARCH -> SearchScreen(query, { query = it }, tracks, ::playAt, Modifier.padding(padding))
+                    Destination.HOME -> HomeScreen(tracks, ::playAt, screenModifier)
+                    Destination.LIBRARY -> LibraryScreen(tracks, ::playAt, libraryMode, { libraryMode = it }, screenModifier)
+                    Destination.PODCASTS -> PodcastScreen(screenModifier)
+                    Destination.SEARCH -> SearchScreen(query, { query = it }, tracks, ::playAt, screenModifier)
                 }
             }
 
@@ -235,7 +256,7 @@ private fun AuraBackground() {
 }
 
 @Composable
-private fun FloatingDock(destination: Destination, onDestination: (Destination) -> Unit) {
+private fun FloatingBottomNav(destination: Destination, onDestination: (Destination) -> Unit) {
     val items = listOf(
         Destination.HOME to Icons.Rounded.Home,
         Destination.LIBRARY to Icons.Rounded.LibraryMusic,
@@ -243,8 +264,13 @@ private fun FloatingDock(destination: Destination, onDestination: (Destination) 
         Destination.SEARCH to Icons.Rounded.Search
     )
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(34.dp)).background(MgGlass)
-            .border(1.dp, MgBorder, RoundedCornerShape(34.dp)).padding(7.dp),
+        Modifier
+            .fillMaxWidth()
+            .blur(32.dp)
+            .clip(RoundedCornerShape(34.dp))
+            .background(Color(0x1AFFFFFF))
+            .border(1.dp, MgBorder, RoundedCornerShape(34.dp))
+            .padding(7.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -268,7 +294,7 @@ private fun HomeScreen(tracks: List<Track>, onPlay: (Int) -> Unit, modifier: Mod
     LazyColumn(
         modifier.fillMaxSize().padding(horizontal = 22.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
-        contentPadding = PaddingValues(top = 30.dp, bottom = 155.dp)
+        contentPadding = PaddingValues(top = 14.dp, bottom = 155.dp)
     ) {
         item {
             Text("MUSIC GALLERY", style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 2.sp), color = MgAccent)
@@ -285,7 +311,7 @@ private fun HomeScreen(tracks: List<Track>, onPlay: (Int) -> Unit, modifier: Mod
         if (tracks.isEmpty()) {
             item { EmptyState() }
         } else {
-            item { SectionHeader("Quick picks", "From your local library") }
+            item { SectionHeader("Library picks", "Selected from your local library") }
             item {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
@@ -299,7 +325,7 @@ private fun HomeScreen(tracks: List<Track>, onPlay: (Int) -> Unit, modifier: Mod
                     }
                 }
             }
-            item { SectionHeader("Recently available", "${tracks.size} songs") }
+            item { SectionHeader("All music", "${tracks.size} songs available") }
             items(tracks.take(10), key = { it.id }) { track ->
                 TrackRow(track) { onPlay(tracks.indexOf(track)) }
             }
@@ -316,7 +342,7 @@ private fun LibraryScreen(tracks: List<Track>, onPlay: (Int) -> Unit, mode: Stri
         else -> tracks
     }
     Column(modifier.fillMaxSize().padding(horizontal = 22.dp)) {
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(12.dp))
         Text("Library", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold), color = MgText)
         Text("Everything Music Gallery can read on this device", color = MgMuted)
         Spacer(Modifier.height(18.dp))
@@ -343,7 +369,7 @@ private fun SearchScreen(query: String, onQuery: (String) -> Unit, tracks: List<
         }
     }
     Column(modifier.fillMaxSize().padding(horizontal = 22.dp)) {
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(12.dp))
         Text("Search", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold), color = MgText)
         Spacer(Modifier.height(14.dp))
         OutlinedTextField(
@@ -368,7 +394,7 @@ private fun SearchScreen(query: String, onQuery: (String) -> Unit, tracks: List<
 
 @Composable
 private fun PodcastScreen(modifier: Modifier) {
-    LazyColumn(modifier.fillMaxSize().padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(top = 28.dp, bottom = 155.dp)) {
+    LazyColumn(modifier.fillMaxSize().padding(horizontal = 22.dp), verticalArrangement = Arrangement.spacedBy(14.dp), contentPadding = PaddingValues(top = 12.dp, bottom = 155.dp)) {
         item {
             Text("Podcasts", style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Bold), color = MgText)
             Spacer(Modifier.height(6.dp))
@@ -423,7 +449,7 @@ private fun FlowNowPlaying(tracks: List<Track>, currentIndex: Int, track: Track,
                 position = controller.currentPosition().coerceAtLeast(0L)
                 duration = controller.duration().takeIf { it > 0 } ?: track.durationMs
             }
-            delay(300)
+            delay(250)
         }
     }
     LaunchedEffect(track.id) {
@@ -433,8 +459,13 @@ private fun FlowNowPlaying(tracks: List<Track>, currentIndex: Int, track: Track,
 
     val progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
     Box(Modifier.fillMaxSize().background(MgBackground)) {
-        AsyncImage(model = track.artworkUri, contentDescription = null, modifier = Modifier.fillMaxSize().blur(64.dp).graphicsLayer { alpha = 0.22f }, contentScale = ContentScale.Crop)
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, MgBackground.copy(0.58f), MgBackground))))
+        AsyncImage(
+            model = track.artworkUri,
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize().blur(100.dp).graphicsLayer { alpha = 0.48f; scaleX = 1.12f; scaleY = 1.12f },
+            contentScale = ContentScale.Crop
+        )
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, MgBackground.copy(alpha = 0.62f), MgBackground))))
         Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onClose) { Icon(Icons.Rounded.KeyboardArrowDown, "Close player", tint = MgText) }
@@ -442,7 +473,12 @@ private fun FlowNowPlaying(tracks: List<Track>, currentIndex: Int, track: Track,
                 Spacer(Modifier.size(48.dp))
             }
             Spacer(Modifier.height(18.dp))
-            HorizontalPager(state = pagerState, contentPadding = PaddingValues(horizontal = 42.dp), pageSpacing = 14.dp, modifier = Modifier.fillMaxWidth().height(380.dp)) { page ->
+            HorizontalPager(
+                state = pagerState,
+                contentPadding = PaddingValues(horizontal = 42.dp),
+                pageSpacing = 14.dp,
+                modifier = Modifier.fillMaxWidth().height(380.dp)
+            ) { page ->
                 val pageTrack = tracks[page]
                 val pageOffset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
                 val absoluteOffset = pageOffset.absoluteValue.coerceIn(0f, 1f)
@@ -450,8 +486,15 @@ private fun FlowNowPlaying(tracks: List<Track>, currentIndex: Int, track: Track,
                 val alpha = lerp(0.42f, 1f, 1f - absoluteOffset)
                 val rotationY = (pageOffset * 25f).coerceIn(-25f, 25f)
                 Box(
-                    Modifier.fillMaxSize().graphicsLayer { scaleX = scale; scaleY = scale; this.alpha = alpha; this.rotationY = rotationY; cameraDistance = 16f * density }
-                        .clip(RoundedCornerShape(30.dp)).border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(30.dp))
+                    Modifier.fillMaxSize().graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        this.alpha = alpha
+                        this.rotationY = rotationY
+                        cameraDistance = 16f * density
+                    }
+                        .clip(RoundedCornerShape(30.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(30.dp))
                 ) {
                     Artwork(pageTrack.artworkUri, 380.dp, Modifier.fillMaxSize())
                     Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.9f)))).padding(22.dp)) {
