@@ -1,23 +1,28 @@
 package com.prathyushin.musicgallery.ui
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+
+private val MusicGalleryDarkColors = darkColorScheme(
+    primary = Color(0xFFD7FF35),
+    onPrimary = Color(0xFF09090B),
+    secondary = Color(0xFFB44CFF),
+    onSecondary = Color(0xFFFFFFFF),
+    background = Color(0xFF09090B),
+    onBackground = Color(0xFFF7F7F7),
+    surface = Color(0xFF09090B),
+    onSurface = Color(0xFFF7F7F7),
+    surfaceVariant = Color(0xFF141418),
+    onSurfaceVariant = Color(0xFF9B9BA3),
+    outline = Color(0x30FFFFFF)
+)
 
 @Composable
 fun MusicGalleryTheme(content: @Composable () -> Unit) {
-    val context = LocalContext.current
-    val dark = isSystemInDarkTheme()
-    val colors = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (dark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
-        if (dark) darkColorScheme() else lightColorScheme()
-    }
-    MaterialTheme(colorScheme = colors, content = content)
+    MaterialTheme(
+        colorScheme = MusicGalleryDarkColors,
+        content = content
+    )
 }
