@@ -10,8 +10,8 @@ android {
         applicationId = "com.prathyushin.musicgallery"
         minSdk = 28
         targetSdk = 37
-        versionCode = 50
-        versionName = "5.0.0-alpha01"
+        versionCode = 51
+        versionName = "5.0.0-alpha02"
     }
     buildFeatures { compose = true }
 }
