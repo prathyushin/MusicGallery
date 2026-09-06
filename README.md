@@ -65,6 +65,6 @@ No release version will silently replace another. Each meaningful release should
 
 ## Developer
 
-**Built by Pratyush.**
+       **Built by Pratyush.**
 
 MusicGallery is a personal Android software project focused on making local music and podcasts feel fast, beautiful, and genuinely enjoyable to use.
