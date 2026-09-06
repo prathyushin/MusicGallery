@@ -10,8 +10,8 @@ android {
         applicationId = "com.prathyushin.musicgallery"
         minSdk = 28
         targetSdk = 37
-        versionCode = 43
-        versionName = "4.2.1-alpha01"
+        versionCode = 50
+        versionName = "5.0.0-alpha01"
     }
     buildFeatures { compose = true }
 }
@@ -30,7 +30,7 @@ dependencies {
     implementation("androidx.media3:media3-exoplayer:1.9.0")
     implementation("androidx.media3:media3-session:1.9.0")
     implementation("androidx.media3:media3-ui:1.9.0")
-    implementation("io.coil-kt.coil3:coil-compose:3.3.0")
+    implementation("io.coil-kt:coil-compose:2.6.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
