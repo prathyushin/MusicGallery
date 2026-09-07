@@ -1,0 +1,49 @@
+name: MusicGallery 5.1.0 Release
+
+on:
+  push:
+    branches: ["v5.1.0-release"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.3.1"
+      - name: Build installable debug APK
+        run: gradle --no-daemon assembleDebug
+      - name: Prepare release APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk MusicGallery-v5.1.0-debug.apk
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MusicGallery-v5.1.0
+          path: MusicGallery-v5.1.0-debug.apk
+          if-no-files-found: error
+      - name: Ensure GitHub Release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view v5.1.0 >/dev/null 2>&1; then
+            gh release create v5.1.0 \
+              --title "MusicGallery 5.1.0 — Flow Design System" \
+              --notes "MusicGallery V5.1 release build. Flow combines floating spatial navigation, dark/neon music energy, glassmorphism, restrained minimalism, controlled maximalism and selective brutalist composition while preserving the functional local-library and playback architecture. Media3 1.11.0." \
+              --target v5.1.0-release
+          fi
+      - name: Publish APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload v5.1.0 MusicGallery-v5.1.0-debug.apk --clobber
