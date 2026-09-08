@@ -1,0 +1,1 @@
+The V4.2.2 release branch exists and is based on V4.2.1.
