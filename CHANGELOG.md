@@ -2,33 +2,60 @@
 
 All notable Music Gallery changes are documented here.
 
-## [3.1.0-alpha01] — The Listening Update
+## [4.4.0] — Fluid Listening
 
 ### Added
-- Visible release version badge in the Home experience.
-- Dedicated "What's new" card for each user-visible release direction.
-- Centralized `AppVersion` object for user-facing release identity.
-- Versioning policy for future Music Gallery updates.
-- Refined copy and hierarchy across Home, Library, Podcasts and Search.
+- Rebuilt Home around real device music and artwork-first presentation.
+- Featured local track surface.
+- Quick-pick and album carousels.
+- Local category filtering.
+- Persistent local favorites using SharedPreferences.
+- Consistent editorial light/dark theme.
+- Improved accessibility descriptions for artwork and playback controls.
 
-### Platform
-- Minimum supported Android version remains **Android 9 / API 28**.
-- Target SDK remains **36**.
+### Playback
+- Reliable Media3 playback from Android MediaStore content URIs.
+- Pending playback command queue while MediaController connects.
+- Queue index resolution by media ID to tolerate stale MediaStore entries.
+- Play / pause / previous / next.
+- Interactive seeking.
+- Shuffle.
+- Repeat off / all / one.
+- Persistent mini-player.
+- Full Now Playing surface with artwork ambience.
 
-### Foundation
-- Continues the V3 direction built around Jetpack Compose, Material 3 and AndroidX Media3.
-- Keeps music and podcasts as first-class sections sharing a common listening experience.
+### UX
+- Clear music-first hierarchy.
+- Smoother mini-player and Now Playing transitions.
+- Improved spacing, surfaces, touch targets and contrast.
+- Honest empty states with no fabricated catalog content.
 
-## [3.0.0-alpha01]
+### Product policy
+- Core music remains local-first.
+- No fake songs, artists, albums, listening statistics, queue items, artwork or progress.
+- Podcasts remain explicitly unpopulated until real feed/subscription functionality is ready.
 
-### Added
-- V3 development branch and product foundation.
-- Music + podcast navigation shell.
-- Persistent mini-player shell.
-- Initial shared music/podcast models.
-- Material 3 theme foundation.
-- Initial Media3 playback controller.
+## [4.3.0-alpha01] — Playback Reliability Rebuild
+
+- Established the Media3 playback reliability pass.
+- Added the first queued-command handling for the asynchronous MediaController connection.
+- Introduced the artwork-first fluid listening direction.
+
+## [4.2.x] — Real Library + Fluid UI Foundation
+
+- Real Android MediaStore music library.
+- Songs, albums and artists views.
+- Real local metadata search.
+- Media3 service playback foundation.
+- Mini-player and Now Playing foundation.
 
 ## Versioning rule
 
-Every distributable update gets a new version code. User-visible changes should also increment the version name and be recorded in this file.
+Stable product releases use semantic versioning without alpha suffixes. Every distributable update gets a new version code, and user-visible changes are recorded in this file.
+
+---
+
+### Credits
+
+**A HOXGOX Production**  
+**Built by Pranav & Prathyusha**
