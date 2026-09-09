@@ -1,8 +1,8 @@
-name: MusicGallery 4.2.2 Android Release
+name: MusicGallery 4.3.0 Android Release
 
 on:
   push:
-    branches: ["v4.2.2-alpha01"]
+    branches: ["v4.3.0-alpha01"]
   workflow_dispatch:
 
 permissions:
@@ -26,24 +26,24 @@ jobs:
       - name: Build installable debug APK
         run: gradle --no-daemon assembleDebug
       - name: Prepare release APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk MusicGallery-v4.2.2-alpha01-debug.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk MusicGallery-v4.3.0-alpha01-debug.apk
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MusicGallery-v4.2.2-alpha01
-          path: MusicGallery-v4.2.2-alpha01-debug.apk
+          name: MusicGallery-v4.3.0-alpha01
+          path: MusicGallery-v4.3.0-alpha01-debug.apk
           if-no-files-found: error
       - name: Ensure GitHub Release exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view v4.2.2-alpha01 >/dev/null 2>&1; then
-            gh release create v4.2.2-alpha01 \
-              --title "MusicGallery 4.2.2-alpha01 — Cleaner Fluid UI" \
-              --notes "V4.2.2 is the newest installable MusicGallery testing release, based on the real-data V4.2.1 flow UI. It preserves MediaStore-backed music, Media3 playback, live progress/seek, artwork-first presentation, floating navigation and the Mini Player to Now Playing flow. No fabricated catalog content is introduced. This remains an alpha release for hands-on feedback, not a production 1.0." \
-              --target v4.2.2-alpha01
+          if ! gh release view v4.3.0-alpha01 >/dev/null 2>&1; then
+            gh release create v4.3.0-alpha01 \
+              --title "MusicGallery 4.3.0-alpha01 — Real Player" \
+              --notes "V4.3.0 rebuilds the core listening experience around real Media3 playback. Playback commands are retained until the MediaController connects, the library/player share one playback state, Now Playing exposes play/pause/previous/next/seek/shuffle/repeat, and the UI receives a contrast and hierarchy pass. Local MediaStore content remains the only music source; no fabricated catalog is added." \
+              --target v4.3.0-alpha01
           fi
       - name: Publish APK
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload v4.2.2-alpha01 MusicGallery-v4.2.2-alpha01-debug.apk --clobber
+        run: gh release upload v4.3.0-alpha01 MusicGallery-v4.3.0-alpha01-debug.apk --clobber
