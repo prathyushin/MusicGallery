@@ -11,8 +11,15 @@ import androidx.media3.session.SessionToken
 import com.prathyushin.musicgallery.model.Track
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 
+/**
+ * UI-facing Media3 controller.
+ *
+ * UI actions are never dropped while the asynchronous MediaController
+ * connection is being established.
+ */
 class PlaybackController(context: Context) {
     private val executor = Executors.newSingleThreadExecutor()
     private val controllerFuture = MediaController.Builder(
@@ -21,7 +28,7 @@ class PlaybackController(context: Context) {
     ).buildAsync()
 
     @Volatile private var controller: MediaController? = null
-    private var pendingCommand: ((MediaController) -> Unit)? = null
+    private val pendingCommands = CopyOnWriteArrayList<(MediaController) -> Unit>()
 
     private val _isConnected = MutableStateFlow(false)
     val isConnected: StateFlow<Boolean> = _isConnected
@@ -39,11 +46,12 @@ class PlaybackController(context: Context) {
     val repeatMode: StateFlow<Int> = _repeatMode
 
     private val listener = object : Player.Listener {
-        override fun onIsPlayingChanged(isPlaying: Boolean) { _isPlaying.value = isPlaying }
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) { syncState() }
-        override fun onPlaybackStateChanged(playbackState: Int) { syncState() }
-        override fun onShuffleModeEnabledChanged(enabled: Boolean) { _shuffleEnabled.value = enabled }
-        override fun onRepeatModeChanged(mode: Int) { _repeatMode.value = mode }
+        override fun onIsPlayingChanged(isPlaying: Boolean) = syncState()
+        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) = syncState()
+        override fun onPlaybackStateChanged(playbackState: Int) = syncState()
+        override fun onShuffleModeEnabledChanged(enabled: Boolean) = syncState()
+        override fun onRepeatModeChanged(mode: Int) = syncState()
+        override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) = syncState()
     }
 
     init {
@@ -54,11 +62,11 @@ class PlaybackController(context: Context) {
                 connected.addListener(listener)
                 _isConnected.value = true
                 syncState(connected)
-                pendingCommand?.let { command ->
-                    pendingCommand = null
-                    command(connected)
-                    syncState(connected)
-                }
+
+                val commands = pendingCommands.toList()
+                pendingCommands.clear()
+                commands.forEach { command -> runCatching { command(connected) } }
+                syncState(connected)
             } catch (_: Exception) {
                 controller = null
                 _isConnected.value = false
@@ -66,8 +74,8 @@ class PlaybackController(context: Context) {
         }, executor)
     }
 
-    private fun item(track: Track): MediaItem? {
-        val uri = track.contentUri?.takeIf { it.isNotBlank() }?.let(Uri::parse) ?: return null
+    private fun mediaItem(track: Track): MediaItem? {
+        val uri = track.contentUri?.takeIf(String::isNotBlank)?.let(Uri::parse) ?: return null
         return MediaItem.Builder()
             .setMediaId(track.id.toString())
             .setUri(uri)
@@ -76,74 +84,89 @@ class PlaybackController(context: Context) {
                     .setTitle(track.title)
                     .setArtist(track.artist)
                     .setAlbumTitle(track.album)
-                    .setArtworkUri(track.artworkUri?.takeIf { it.isNotBlank() }?.let(Uri::parse))
+                    .setArtworkUri(track.artworkUri?.takeIf(String::isNotBlank)?.let(Uri::parse))
                     .build()
             )
             .build()
     }
 
     private fun execute(command: (MediaController) -> Unit) {
-        controller?.let(command) ?: run { pendingCommand = command }
+        val active = controller
+        if (active != null) {
+            runCatching { command(active) }.onFailure { _isConnected.value = false }
+        } else {
+            pendingCommands += command
+        }
     }
 
     fun play(track: Track) {
-        val mediaItem = item(track) ?: return
+        val item = mediaItem(track) ?: return
         execute {
-            it.setMediaItem(mediaItem)
+            it.setMediaItem(item)
             it.prepare()
             it.play()
-            syncState(it)
         }
     }
 
     fun playQueue(tracks: List<Track>, index: Int) {
         if (tracks.isEmpty() || index !in tracks.indices) return
-        val items = tracks.mapNotNull(::item)
+        val items = tracks.mapNotNull(::mediaItem)
         if (items.isEmpty()) return
-        val safeIndex = index.coerceIn(0, items.lastIndex)
+
+        val requestedId = tracks[index].id.toString()
+        val safeIndex = items.indexOfFirst { it.mediaId == requestedId }.takeIf { it >= 0 } ?: 0
+
         execute {
             it.setMediaItems(items, safeIndex, 0L)
             it.prepare()
             it.play()
-            syncState(it)
         }
     }
 
     fun togglePlayPause() = execute {
         if (it.isPlaying) it.pause() else it.play()
-        syncState(it)
     }
-    fun pause() = execute { it.pause(); syncState(it) }
-    fun resume() = execute { it.play(); syncState(it) }
+
+    fun pause() = execute { it.pause() }
+    fun resume() = execute { it.play() }
     fun next() = execute { it.seekToNextMediaItem() }
+
     fun previous() = execute {
         if (it.currentPosition > 4_000L) it.seekTo(0L) else it.seekToPreviousMediaItem()
     }
-    fun seekTo(positionMs: Long) = execute { it.seekTo(positionMs.coerceAtLeast(0L)) }
-    fun toggleShuffle() = execute {
-        it.shuffleModeEnabled = !it.shuffleModeEnabled
-        syncState(it)
-    }
-    fun toggleRepeat() = execute {
-        it.repeatMode = if (it.repeatMode == Player.REPEAT_MODE_OFF) Player.REPEAT_MODE_ALL else Player.REPEAT_MODE_OFF
-        syncState(it)
+
+    fun seekTo(positionMs: Long) = execute {
+        it.seekTo(positionMs.coerceAtLeast(0L))
     }
 
-    fun currentPosition(): Long = controller?.currentPosition ?: position.value
-    fun currentDuration(): Long = controller?.duration?.takeIf { it > 0 } ?: duration.value
+    fun toggleShuffle() = execute {
+        it.shuffleModeEnabled = !it.shuffleModeEnabled
+    }
+
+    fun toggleRepeat() = execute {
+        it.repeatMode = when (it.repeatMode) {
+            Player.REPEAT_MODE_OFF -> Player.REPEAT_MODE_ALL
+            Player.REPEAT_MODE_ALL -> Player.REPEAT_MODE_ONE
+            else -> Player.REPEAT_MODE_OFF
+        }
+    }
+
+    fun currentPosition(): Long = controller?.currentPosition?.coerceAtLeast(0L) ?: position.value
+
+    fun currentDuration(): Long = controller?.duration?.takeIf { it > 0L } ?: duration.value
 
     private fun syncState(source: Player? = controller) {
         source ?: return
         _isPlaying.value = source.isPlaying
         _currentMediaId.value = source.currentMediaItem?.mediaId
-        _duration.value = source.duration.takeIf { it > 0 } ?: 0L
+        _duration.value = source.duration.takeIf { it > 0L } ?: 0L
         _position.value = source.currentPosition.coerceAtLeast(0L)
         _shuffleEnabled.value = source.shuffleModeEnabled
         _repeatMode.value = source.repeatMode
     }
 
     fun release() {
-        pendingCommand = null
+        pendingCommands.clear()
         controller?.removeListener(listener)
         controller?.release()
         controller = null
