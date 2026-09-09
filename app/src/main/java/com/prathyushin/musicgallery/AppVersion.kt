@@ -1,7 +1,7 @@
 package com.prathyushin.musicgallery
 
 object AppVersion {
-    const val NAME = "4.2.2-alpha01"
-    const val VERSION_CODE = 44
-    const val RELEASE_TITLE = "Cleaner Fluid UI — V4.2.2"
+    const val NAME = "4.4.0"
+    const val VERSION_CODE = 45
+    const val RELEASE_TITLE = "Music Gallery 4.4.0 — Fluid Listening"
 }
