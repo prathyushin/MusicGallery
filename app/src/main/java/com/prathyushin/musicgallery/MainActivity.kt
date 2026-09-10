@@ -1,364 +1,435 @@
 package com.prathyushin.musicgallery
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.*
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.QueueMusic
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.SkipPrevious
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.util.lerp
+import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.*
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import coil.compose.AsyncImage
-import kotlin.math.absoluteValue
+import com.prathyushin.musicgallery.library.MusicScanner
+import com.prathyushin.musicgallery.model.Track
+import com.prathyushin.musicgallery.playback.PlaybackController
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
-// Design Tokens (Apple Glass + Spotify Dark)
-val MgDarkBase = Color(0xFF09090B)
-val MgNeonLime = Color(0xFFD4FF26)
-val MgGlassBg = Color(0x1AFFFFFF)
-val MgGlassBorder = Color(0x33FFFFFF)
-val MgPrimary = Color(0xFFFFFFFF)
+private val Ink = Color(0xFFF7F7F8)
+private val Muted = Color(0xFFA7A7AE)
+private val Background = Color(0xFF09090B)
+private val SurfaceDark = Color(0xFF151518)
+private val SurfaceLight = Color(0xFF202024)
+private val Accent = Color(0xFFD4FF26)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MaterialTheme(colorScheme = darkColorScheme(background = MgDarkBase)) {
-                MusicGalleryMasterApp()
-            }
-        }
+        setContent { MusicGalleryApp() }
     }
 }
 
 @Composable
-fun MusicGalleryMasterApp() {
+private fun MusicGalleryApp() {
     val navController = rememberNavController()
-    var isNowPlayingExpanded by remember { mutableStateOf(false) }
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val playback = remember { PlaybackController(context.applicationContext) }
+    val playerState by playback.state.collectAsState()
+    var tracks by remember { mutableStateOf<List<Track>>(emptyList()) }
+    var permissionGranted by remember {
+        mutableStateOf(hasAudioPermission(context))
+    }
+    var showPlayer by remember { mutableStateOf(false) }
 
-    Box(modifier = Modifier.fillMaxSize().background(MgDarkBase)) {
-        Scaffold(
-            bottomBar = { FloatingGlassNav(navController) },
-            containerColor = Color.Transparent,
-            modifier = Modifier.fillMaxSize()
-        ) { innerPadding ->
-            NavHost(navController, startDestination = "home", modifier = Modifier.padding(innerPadding)) {
-                composable("home") { HomeScreen { isNowPlayingExpanded = true } }
-                composable("library") { Box(Modifier.fillMaxSize()) } // Connect to MediaStore scanner
-                composable("podcasts") { PodcastsScreen() }
-                composable("search") { Box(Modifier.fillMaxSize()) }
-            }
-        }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        permissionGranted = granted
+        if (granted) tracks = MusicScanner(context.contentResolver).scan()
+    }
 
-        // Apple-style Fluid Modal Player
-        AnimatedVisibility(
-            visible = isNowPlayingExpanded,
-            enter = slideInVertically(initialOffsetY = { it }, animationSpec = spring(stiffness = Spring.StiffnessLow)),
-            exit = slideOutVertically(targetOffsetY = { it }, animationSpec = spring(stiffness = Spring.StiffnessLow))
-        ) {
-            NowPlayingScreen { isNowPlayingExpanded = false }
+    LaunchedEffect(permissionGranted) {
+        if (!permissionGranted) {
+            permissionLauncher.launch(requiredAudioPermission())
+        } else {
+            tracks = MusicScanner(context.contentResolver).scan()
         }
     }
-}
 
-@Composable
-fun FloatingGlassNav(navController: NavHostController) {
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    val items = listOf(
-        Pair("home", Icons.Rounded.Home),
-        Pair("library", Icons.Rounded.LibraryMusic),
-        Pair("podcasts", Icons.Rounded.Mic),
-        Pair("search", Icons.Rounded.Search)
-    )
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(24.dp)
-            .navigationBarsPadding(),
-        contentAlignment = Alignment.BottomCenter
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(40.dp))
-                .background(MgGlassBg)
-                .border(1.dp, MgGlassBorder, RoundedCornerShape(40.dp))
-                .blur(32.dp)
-                .padding(8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            items.forEach { (route, icon) ->
-                val isSelected = currentRoute == route
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(if (isSelected) MgNeonLime else Color.Transparent)
-                        .clickable {
-                            navController.navigate(route) {
-                                popUpTo(0)
-                                launchSingleTop = true
-                            }
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        icon,
-                        null,
-                        tint = if (isSelected) MgDarkBase else MgPrimary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+    LaunchedEffect(Unit) {
+        while (true) {
+            playback.updatePosition()
+            delay(500)
         }
     }
-}
 
-@Composable
-fun HomeScreen(onOpenPlayer: () -> Unit) {
-    Box(modifier = Modifier.fillMaxSize()) {
-        val auraScale by rememberInfiniteTransition().animateFloat(
-            1f,
-            1.3f,
-            infiniteRepeatable(tween(6000), RepeatMode.Reverse)
-        )
-        Box(
-            modifier = Modifier
-                .offset((-50).dp, (-50).dp)
-                .size(350.dp)
-                .graphicsLayer { scaleX = auraScale; scaleY = auraScale }
-                .blur(120.dp)
-                .background(
-                    Brush.radialGradient(
-                        listOf(Color(0xFF9C27B0).copy(0.6f), Color.Transparent)
-                    ),
-                    CircleShape
-                )
-        )
+    DisposableEffect(Unit) { onDispose { playback.release() } }
 
-        LazyColumn(
-            contentPadding = PaddingValues(top = 64.dp, bottom = 120.dp, start = 20.dp, end = 20.dp)
-        ) {
-            item {
-                Text(
-                    "Hi, Listener",
-                    style = MaterialTheme.typography.headlineLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MgPrimary
-                )
-                Spacer(Modifier.height(32.dp))
-            }
-            item {
-                Text(
-                    "Recently Played",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = MgPrimary
-                )
-                Spacer(Modifier.height(16.dp))
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onOpenPlayer() },
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(64.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color.DarkGray)
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Blinding Lights", fontWeight = FontWeight.Bold, color = MgPrimary)
-                        Text("The Weeknd", color = Color.Gray)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PodcastsScreen() {
-    LazyColumn(
-        contentPadding = PaddingValues(top = 64.dp, bottom = 120.dp, start = 20.dp, end = 20.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Text(
-                "Podcasts",
-                style = MaterialTheme.typography.headlineLarge,
-                fontWeight = FontWeight.Bold,
-                color = MgPrimary
-            )
-            Spacer(Modifier.height(32.dp))
-        }
-        item {
-            Text(
-                "Up Next",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MgPrimary
-            )
-            Spacer(Modifier.height(16.dp))
-        }
-        items(5) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MgGlassBg)
-                )
-                Spacer(Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("Design Matters #$it", fontWeight = FontWeight.Bold, color = MgPrimary)
-                    Text("45 min left", color = MgNeonLime, style = MaterialTheme.typography.bodySmall)
-                }
-                Icon(
-                    Icons.Rounded.PlayCircleOutline,
-                    null,
-                    tint = MgPrimary,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun NowPlayingScreen(onClose: () -> Unit) {
-    val pagerState = rememberPagerState(pageCount = { 3 })
-    Box(modifier = Modifier.fillMaxSize().background(MgDarkBase)) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.DarkGray)
-                .blur(100.dp)
-                .graphicsLayer { alpha = 0.5f }
-        ) // Ambient background
-
-        Column(modifier = Modifier.fillMaxSize().systemBarsPadding()) {
-            IconButton(onClick = onClose, modifier = Modifier.padding(16.dp)) {
-                Icon(
-                    Icons.Rounded.KeyboardArrowDown,
-                    null,
-                    tint = MgPrimary,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
-            Spacer(Modifier.height(20.dp))
-
-            HorizontalPager(
-                state = pagerState,
-                contentPadding = PaddingValues(horizontal = 70.dp),
-                modifier = Modifier.fillMaxWidth().height(360.dp)
-            ) { page ->
-                val offset = (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                val scale = lerp(
-                    0.85f,
-                    1f,
-                    1f - offset.absoluteValue.coerceIn(0f, 1f)
-                )
-                Box(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = scale
-                            scaleY = scale
-                            rotationY = (offset * 25f).coerceIn(-25f, 25f)
-                        }
-                        .fillMaxSize()
-                        .padding(4.dp)
-                        .clip(RoundedCornerShape(32.dp))
-                        .background(Color.Gray)
-                )
-            }
-
-            Spacer(Modifier.weight(1f))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-                    .clip(RoundedCornerShape(40.dp))
-                    .background(MgGlassBg)
-                    .border(1.dp, MgGlassBorder, RoundedCornerShape(40.dp))
-                    .padding(24.dp)
-            ) {
-                Column {
-                    Slider(
-                        value = 0.3f,
-                        onValueChange = {},
-                        colors = SliderDefaults.colors(
-                            thumbColor = MgPrimary,
-                            activeTrackColor = MgNeonLime
-                        )
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Rounded.SkipPrevious,
-                            null,
-                            tint = MgPrimary,
-                            modifier = Modifier.size(36.dp)
-                        )
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MgPrimary.copy(0.2f))
-                                .border(1.dp, MgGlassBorder, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Rounded.PlayArrow,
-                                null,
-                                tint = MgPrimary,
-                                modifier = Modifier.size(36.dp)
+    MaterialTheme(colorScheme = androidx.compose.material3.darkColorScheme(background = Background)) {
+        Box(Modifier.fillMaxSize().background(Background)) {
+            Scaffold(
+                containerColor = Color.Transparent,
+                bottomBar = {
+                    Column(Modifier.navigationBarsPadding()) {
+                        AnimatedVisibility(playerState.track != null && !showPlayer, enter = fadeIn(), exit = fadeOut()) {
+                            MiniPlayer(
+                                state = playerState,
+                                onOpen = { showPlayer = true },
+                                onPlayPause = playback::toggle,
+                                onNext = playback::next
                             )
                         }
-                        Icon(
-                            Icons.Rounded.SkipNext,
-                            null,
-                            tint = MgPrimary,
-                            modifier = Modifier.size(36.dp)
+                        BottomNavigation(navController)
+                    }
+                }
+            ) { padding ->
+                NavHost(
+                    navController = navController,
+                    startDestination = "home",
+                    modifier = Modifier.padding(padding)
+                ) {
+                    composable("home") {
+                        HomeScreen(
+                            tracks = tracks,
+                            permissionGranted = permissionGranted,
+                            onPlay = { track -> playback.play(track, tracks); showPlayer = true },
+                            onOpenLibrary = { navController.navigate("library") }
                         )
+                    }
+                    composable("library") {
+                        LibraryScreen(
+                            tracks = tracks,
+                            onPlay = { track -> playback.play(track, tracks) },
+                            onRefresh = { tracks = MusicScanner(context.contentResolver).scan() }
+                        )
+                    }
+                    composable("podcasts") { PodcastsScreen() }
+                    composable("search") {
+                        SearchScreen(tracks = tracks, onPlay = { track -> playback.play(track, tracks) })
+                    }
+                }
+            }
+
+            if (showPlayer && playerState.track != null) {
+                NowPlayingScreen(
+                    state = playerState,
+                    onClose = { showPlayer = false },
+                    onPlayPause = playback::toggle,
+                    onPrevious = playback::previous,
+                    onNext = playback::next,
+                    onSeek = playback::seekTo
+                )
+            }
+        }
+    }
+}
+
+private fun hasAudioPermission(context: android.content.Context): Boolean =
+    ContextCompat.checkSelfPermission(context, requiredAudioPermission()) == PackageManager.PERMISSION_GRANTED
+
+private fun requiredAudioPermission(): String =
+    if (Build.VERSION.SDK_INT >= 33) Manifest.permission.READ_MEDIA_AUDIO
+    else Manifest.permission.READ_EXTERNAL_STORAGE
+
+@Composable
+private fun HomeScreen(
+    tracks: List<Track>,
+    permissionGranted: Boolean,
+    onPlay: (Track) -> Unit,
+    onOpenLibrary: () -> Unit
+) {
+    LazyColumn(
+        contentPadding = PaddingValues(top = 52.dp, bottom = 24.dp, start = 20.dp, end = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text("Music Gallery", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Ink)
+            Text("Your music. Your library. Nothing in the way.", color = Muted, modifier = Modifier.padding(top = 6.dp))
+            Spacer(Modifier.height(24.dp))
+        }
+        if (!permissionGranted) {
+            item {
+                Card(colors = CardDefaults.cardColors(containerColor = SurfaceDark)) {
+                    Column(Modifier.padding(20.dp)) {
+                        Text("Music access is required", color = Ink, fontWeight = FontWeight.Bold)
+                        Text("Allow audio access to build your local library.", color = Muted, modifier = Modifier.padding(top = 6.dp))
                     }
                 }
             }
         }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Text("Recently added", style = MaterialTheme.typography.titleLarge, color = Ink, fontWeight = FontWeight.Bold)
+                OutlinedButton(onClick = onOpenLibrary) { Text("See all") }
+            }
+        }
+        if (tracks.isEmpty()) {
+            item { EmptyState("No local music found yet.") }
+        } else {
+            items(tracks.take(8), key = { it.id }) { track -> TrackRow(track, onPlay) }
+        }
     }
+}
+
+@Composable
+private fun LibraryScreen(tracks: List<Track>, onPlay: (Track) -> Unit, onRefresh: () -> Unit) {
+    LazyColumn(
+        contentPadding = PaddingValues(top = 52.dp, bottom = 24.dp, start = 20.dp, end = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Column {
+                    Text("Library", style = MaterialTheme.typography.headlineLarge, color = Ink, fontWeight = FontWeight.Bold)
+                    Text("${tracks.size} songs", color = Muted, modifier = Modifier.padding(top = 4.dp))
+                }
+                OutlinedButton(onClick = onRefresh) { Text("Refresh") }
+            }
+            Spacer(Modifier.height(18.dp))
+        }
+        if (tracks.isEmpty()) item { EmptyState("Your device has no music that Music Gallery can read.") }
+        else items(tracks, key = { it.id }) { TrackRow(it, onPlay) }
+    }
+}
+
+@Composable
+private fun SearchScreen(tracks: List<Track>, onPlay: (Track) -> Unit) {
+    var query by remember { mutableStateOf("") }
+    val results = remember(query, tracks) {
+        if (query.isBlank()) tracks else tracks.filter {
+            "${it.title} ${it.artist} ${it.album}".contains(query, ignoreCase = true)
+        }
+    }
+    LazyColumn(contentPadding = PaddingValues(top = 48.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)) {
+        item {
+            Text("Search", style = MaterialTheme.typography.headlineLarge, color = Ink, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(16.dp))
+            TextField(
+                value = query,
+                onValueChange = { query = it },
+                singleLine = true,
+                placeholder = { Text("Songs, artists, albums") },
+                leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                colors = TextFieldDefaults.colors(unfocusedContainerColor = SurfaceDark, focusedContainerColor = SurfaceLight)
+            )
+            Spacer(Modifier.height(18.dp))
+        }
+        items(results, key = { it.id }) { TrackRow(it, onPlay) }
+    }
+}
+
+@Composable
+private fun TrackRow(track: Track, onPlay: (Track) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { onPlay(track) }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        AlbumArt(track.artworkUri, Modifier.size(62.dp))
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(track.title, color = Ink, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            Text("${track.artist} • ${track.album}", color = Muted, maxLines = 1, style = MaterialTheme.typography.bodySmall)
+        }
+        Text(formatDuration(track.durationMs), color = Muted, style = MaterialTheme.typography.labelSmall)
+        Icon(Icons.Rounded.MoreVert, null, tint = Muted, modifier = Modifier.padding(start = 8.dp))
+    }
+}
+
+@Composable
+private fun MiniPlayer(
+    state: com.prathyushin.musicgallery.playback.PlayerUiState,
+    onOpen: () -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit
+) {
+    val track = state.track ?: return
+    Surface(color = SurfaceDark, modifier = Modifier.fillMaxWidth().clickable { onOpen() }) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            AlbumArt(track.artworkUri, Modifier.size(48.dp))
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(track.title, color = Ink, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                Text(track.artist, color = Muted, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+            }
+            IconButton(onClick = onPlayPause) { Icon(if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = Ink) }
+            IconButton(onClick = onNext) { Icon(Icons.Rounded.SkipNext, null, tint = Ink) }
+        }
+    }
+}
+
+@Composable
+private fun BottomNavigation(navController: NavHostController) {
+    val current = navController.currentBackStackEntryAsState().value?.destination?.route
+    val items = listOf("home" to Icons.Rounded.Home, "library" to Icons.Rounded.LibraryMusic, "podcasts" to Icons.Rounded.Mic, "search" to Icons.Rounded.Search)
+    Surface(color = Background) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp), horizontalArrangement = Arrangement.SpaceAround) {
+            items.forEach { (route, icon) ->
+                val selected = current == route
+                Column(Modifier.clip(RoundedCornerShape(18.dp)).clickable {
+                    navController.navigate(route) { popUpTo("home") { saveState = true }; launchSingleTop = true; restoreState = true }
+                }.padding(horizontal = 18.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(icon, null, tint = if (selected) Accent else Muted)
+                    Text(route.replaceFirstChar { it.uppercase() }, color = if (selected) Ink else Muted, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun NowPlayingScreen(
+    state: com.prathyushin.musicgallery.playback.PlayerUiState,
+    onClose: () -> Unit,
+    onPlayPause: () -> Unit,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit,
+    onSeek: (Long) -> Unit
+) {
+    val track = state.track ?: return
+    val fraction = if (state.durationMs > 0) (state.positionMs.toFloat() / state.durationMs).coerceIn(0f, 1f) else 0f
+    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF24242A), Background)))) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 30.dp)) {
+            IconButton(onClick = onClose) { Icon(Icons.Rounded.ArrowBack, null, tint = Ink) }
+            Spacer(Modifier.height(22.dp))
+            AlbumArt(track.artworkUri, Modifier.fillMaxWidth().height(330.dp))
+            Spacer(Modifier.height(28.dp))
+            Text(track.title, style = MaterialTheme.typography.headlineSmall, color = Ink, fontWeight = FontWeight.Bold, maxLines = 2)
+            Text(track.artist, style = MaterialTheme.typography.titleMedium, color = Muted, modifier = Modifier.padding(top = 5.dp))
+            Spacer(Modifier.height(18.dp))
+            Slider(value = fraction, onValueChange = { onSeek((it * state.durationMs).roundToInt().toLong()) })
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(formatDuration(state.positionMs), color = Muted, style = MaterialTheme.typography.labelSmall)
+                Text(formatDuration(state.durationMs), color = Muted, style = MaterialTheme.typography.labelSmall)
+            }
+            Spacer(Modifier.height(18.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onPrevious) { Icon(Icons.Rounded.SkipPrevious, null, tint = Ink, modifier = Modifier.size(42.dp)) }
+                Box(Modifier.size(76.dp).clip(CircleShape).background(Accent).clickable { onPlayPause() }, contentAlignment = Alignment.Center) {
+                    Icon(if (state.isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, null, tint = Background, modifier = Modifier.size(38.dp))
+                }
+                IconButton(onClick = onNext) { Icon(Icons.Rounded.SkipNext, null, tint = Ink, modifier = Modifier.size(42.dp)) }
+            }
+            Spacer(Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                Icon(Icons.Rounded.QueueMusic, null, tint = Muted)
+                Spacer(Modifier.width(8.dp))
+                Text(if (state.queueSize > 1) "${state.queueSize} songs in queue" else "Single track", color = Muted)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PodcastsScreen() {
+    LazyColumn(contentPadding = PaddingValues(top = 52.dp, bottom = 24.dp, start = 20.dp, end = 20.dp)) {
+        item {
+            Text("Podcasts", style = MaterialTheme.typography.headlineLarge, color = Ink, fontWeight = FontWeight.Bold)
+            Text("RSS-ready podcast space", color = Muted, modifier = Modifier.padding(top = 6.dp))
+            Spacer(Modifier.height(24.dp))
+        }
+        item {
+            Card(colors = CardDefaults.cardColors(containerColor = SurfaceDark)) {
+                Column(Modifier.padding(20.dp)) {
+                    Text("Your podcast shelf", color = Ink, fontWeight = FontWeight.Bold)
+                    Text("Add a podcast RSS feed to bring episodes into Music Gallery. Audio playback uses the same player architecture.", color = Muted, modifier = Modifier.padding(top = 8.dp))
+                    Spacer(Modifier.height(14.dp))
+                    Button(onClick = { }) { Text("Add feed") }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AlbumArt(uri: String?, modifier: Modifier) {
+    Box(modifier.clip(RoundedCornerShape(16.dp)).background(SurfaceLight), contentAlignment = Alignment.Center) {
+        if (uri.isNullOrBlank()) {
+            Text("♪", color = Muted, style = MaterialTheme.typography.headlineMedium)
+        } else {
+            AsyncImage(model = uri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+        }
+    }
+}
+
+@Composable
+private fun EmptyState(message: String) {
+    Card(colors = CardDefaults.cardColors(containerColor = SurfaceDark), modifier = Modifier.fillMaxWidth()) {
+        Text(message, color = Muted, modifier = Modifier.padding(20.dp))
+    }
+}
+
+private fun formatDuration(ms: Long): String {
+    val totalSeconds = (ms.coerceAtLeast(0L) / 1000L)
+    val minutes = totalSeconds / 60L
+    val seconds = totalSeconds % 60L
+    return "%d:%02d".format(minutes, seconds)
 }
